@@ -7,42 +7,47 @@
  */
 
 var async = require('async'),
+	url = require('url'),
+	commander = require('commander'),
+
+	https = require('https'),
+	http = require('http'),
 	request = require('request'),
+	tunnel = require('tunnel'),
 
-	proxy = process.argv[2],
-
-	urls = [
+	uris = [
 		{
 			uri: 'https://www.google.com',
-			method: 'GET',
-			proxy: proxy,
+			expectedResponseCode: 200
+		},
+		{
+			uri: 'https://github.com',
 			expectedResponseCode: 200
 		},
 		{
 			uri: 'https://www.appcelerator.com',
-			method: 'GET',
-			proxy: proxy,
 			expectedResponseCode: 200
 		},
 		{
 			uri: 'https://api.appcelerator.net/p/v1/sso-login',
-			method: 'POST',
-			proxy: proxy,
 			expectedResponseCode: 400
 		},
 		{
 			uri: 'https://api.appcelerator.net/p/v1/sso-logout',
-			method: 'POST',
-			proxy: proxy,
 			expectedResponseCode: 400
 		},
 		{
 			uri: 'https://my.appcelerator.com/',
-			method: 'POST',
-			proxy: proxy,
 			expectedResponseCode: 302
 		}
-	];
+	],
+	proxy;
+
+commander
+	.version(require('./package.json').version)
+	.option('-p, --proxy [url]', 'The proxy to use, e.g. "http://myproxy.com:8080"')
+	.parse(process.argv);
+proxy = commander.proxy;
 
 if (proxy) {
 	console.log('\nRunning tests with proxy ' + proxy);
@@ -51,27 +56,86 @@ if (proxy) {
 }
 
 function runTest() {
-	var url = urls.shift();
-	if (url) {
-		console.log('\nTesting endpoint ' + url.uri);
-		async.series([
+	var uri = uris.shift();
+	if (uri) {
+		console.log('\nTesting endpoint ' + uri.uri);
+		async.parallel([
+
+			// raw HTTP client
+			function (next) {
+				var options,
+					parsedProxy;
+				if (proxy) {
+					parsedProxy = url.parse(proxy);
+					options = {
+						host: parsedProxy.hostname,
+						port: parsedProxy.port,
+						path: uri.uri,
+						headers: {
+							Host: url.parse(uri.uri).hostname
+						}
+					};
+				} else {
+					options = uri.uri;
+				}
+				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function (response) {
+					console.log('  The raw HTTP module finished for ' + uri.uri + ' with status code ' + response.statusCode +
+						' (expected ' + uri.expectedResponseCode + ')');
+					next();
+				}).on('error', function (error) {
+					console.log('  The raw HTTP module failed for ' + uri.uri + '\n\t' + error);
+					next();
+				});
+			},
 
 			// request module
 			function (next) {
-				console.log('Testing request module');
-				request(url, function (error, response) {
+				request({
+					uri: uri.uri,
+					proxy: proxy
+				}, function (error, response) {
 					if (error) {
-						console.log('The request module failed for ' + url.uri + '\n\t' + error);
+						console.log('  The request module failed for ' + uri.uri + '\n\t' + error);
 					} else {
-						console.log('The request module finished for ' + url.uri + ' with status code ' + response.statusCode +
-							' (expected ' + url.expectedResponseCode + ')');
+						console.log('  The request module finished for ' + uri.uri + ' with status code ' + response.statusCode +
+							' (expected ' + uri.expectedResponseCode + ')');
 					}
 					next();
 				});
+			},
+
+			// tunnel module
+			function (next) {
+				var parsedProxy,
+					parsedHost = url.parse(uri.uri),
+					tunnelingAgent;
+				if (proxy) {
+					parsedProxy = url.parse(proxy);
+					tunnelingAgent = tunnel[parsedProxy.protocol == 'http:' ? 'httpsOverHttp' : 'httpsOverHttps']({
+						proxy: {
+							host: parsedProxy.hostname, // Defaults to 'localhost'
+							port: parsedProxy.port, // Defaults to 80
+						}
+					});
+				}
+				https.get({
+					host: parsedHost.hostname,
+					port: parsedHost.port,
+					agent: tunnelingAgent
+				}, function (response) {
+					console.log('  The tunnel module finished for ' + uri.uri + ' with status code ' + response.statusCode +
+						' (expected ' + uri.expectedResponseCode + ')');
+					next();
+				}).on('error', function (error) {
+					console.log('  The tunnel module failed for ' + uri.uri + '\n\t' + error);
+					next();
+				});
 			}
+
 		], runTest);
 	} else {
 		console.log('\nAll tests finished\n');
+		process.exit();
 	}
 }
 runTest();
