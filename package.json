@@ -1,0 +1,21 @@
+{
+	"name": "titanium-connection-test",
+	"version": "0.1.0",
+	"description": "A script that attempts to connect to TLS secured web locations to test if proxies are interfering with connections to Appcelerator's endpoints",
+	"main": "titanium-connection-test.js",
+	"dependencies": {
+		"async": "0.2.x",
+		"request": "2.x.x"
+	},
+	"author": {
+		"name": "Appcelerator, Inc.",
+		"email": "info@appcelerator.com"
+	},
+	"maintainers": [
+		{
+			"name": "Bryan Hughes",
+			"email": "bhughes@appcelerator.com"
+		}
+	],
+	"license": "Apache Public License v2"
+}
