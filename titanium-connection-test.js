@@ -43,24 +43,26 @@ var async = require('async'),
 		}
 	],
 	proxy,
-	cert;
+	cert,
+	strict;
 
 commander
 	.version(require('./package.json').version)
 	.option('-p, --proxy [url]', 'The proxy to use, e.g. "http://myproxy.com:8080"')
 	.option('-c, --cert [path]', 'The certificate to use')
+	.option('-l, --lenient', 'Do not fail on SSL errors (default false)')
 	.parse(process.argv);
 proxy = commander.proxy;
 cert = commander.cert;
+strict = !commander.lenient;
 if (cert) {
 	cert = fs.readFileSync(cert);
 }
 
-if (proxy) {
-	console.log('\nRunning tests with proxy ' + proxy);
-} else {
-	console.log('\nRunning tests without a proxy');
-}
+console.log(proxy ? '\nUsing proxy "' + proxy + '"' : '\nNot using a proxy');
+console.log(cert ? 'Using certificate "' + cert + '"' : 'Not using a certificate');
+console.log(strict ? 'Failing on SSL errors' : 'Ignoring SSL errors');
+console.log('\nRunning Tests');
 
 function runTest() {
 	var uri = uris.shift();
@@ -83,7 +85,7 @@ function runTest() {
 							Host: url.parse(uri.uri).hostname
 						},
 						cert: cert,
-						rejectUnauthorized: false
+						rejectUnauthorized: strict
 					};
 				} else {
 					parsedUri = url.parse(uri.uri);
@@ -92,7 +94,7 @@ function runTest() {
 						port: parsedUri.port,
 						path: parsedUri.path,
 						cert: cert,
-						rejectUnauthorized: false
+						rejectUnauthorized: strict
 					};
 				}
 				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function (response) {
@@ -111,7 +113,7 @@ function runTest() {
 					uri: uri.uri,
 					proxy: proxy,
 					cert: cert,
-					rejectUnauthorized: false
+					rejectUnauthorized: strict
 				}, function (error, response) {
 					if (error) {
 						console.log('  The request module failed for ' + uri.uri + '\n\t' + error);
@@ -142,7 +144,7 @@ function runTest() {
 					port: parsedHost.port,
 					agent: tunnelingAgent,
 					cert: cert,
-					rejectUnauthorized: false
+					rejectUnauthorized: strict
 				}, function (response) {
 					console.log('  The tunnel module finished for ' + uri.uri + ' with status code ' + response.statusCode +
 						' (expected ' + uri.expectedResponseCode + ')');
