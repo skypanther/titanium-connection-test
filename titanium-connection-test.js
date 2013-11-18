@@ -107,7 +107,8 @@ function runTest() {
 			function (next) {
 				request({
 					uri: uri.uri,
-					proxy: proxy
+					proxy: proxy,
+					cert: cert
 				}, function (error, response) {
 					if (error) {
 						console.log('  The request module failed for ' + uri.uri + '\n\t' + error);
@@ -136,7 +137,8 @@ function runTest() {
 				https.get({
 					host: parsedHost.hostname,
 					port: parsedHost.port,
-					agent: tunnelingAgent
+					agent: tunnelingAgent,
+					cert: cert
 				}, function (response) {
 					console.log('  The tunnel module finished for ' + uri.uri + ' with status code ' + response.statusCode +
 						' (expected ' + uri.expectedResponseCode + ')');
