@@ -82,7 +82,8 @@ function runTest() {
 						headers: {
 							Host: url.parse(uri.uri).hostname
 						},
-						cert: cert
+						cert: cert,
+						rejectUnauthorized: false
 					};
 				} else {
 					parsedUri = url.parse(uri.uri);
@@ -90,7 +91,8 @@ function runTest() {
 						host: parsedUri.hostname,
 						port: parsedUri.port,
 						path: parsedUri.path,
-						cert: cert
+						cert: cert,
+						rejectUnauthorized: false
 					};
 				}
 				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function (response) {
@@ -108,7 +110,8 @@ function runTest() {
 				request({
 					uri: uri.uri,
 					proxy: proxy,
-					cert: cert
+					cert: cert,
+					rejectUnauthorized: false
 				}, function (error, response) {
 					if (error) {
 						console.log('  The request module failed for ' + uri.uri + '\n\t' + error);
@@ -138,7 +141,8 @@ function runTest() {
 					host: parsedHost.hostname,
 					port: parsedHost.port,
 					agent: tunnelingAgent,
-					cert: cert
+					cert: cert,
+					rejectUnauthorized: false
 				}, function (response) {
 					console.log('  The tunnel module finished for ' + uri.uri + ' with status code ' + response.statusCode +
 						' (expected ' + uri.expectedResponseCode + ')');
