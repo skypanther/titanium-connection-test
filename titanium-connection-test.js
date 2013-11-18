@@ -74,7 +74,7 @@ function runTest() {
 						headers: {
 							Host: url.parse(uri).hostname
 						},
-						cert: cert,
+						ca: cert,
 						rejectUnauthorized: strict
 					};
 				} else {
@@ -83,7 +83,7 @@ function runTest() {
 						host: parsedUri.hostname,
 						port: parsedUri.port,
 						path: parsedUri.path,
-						cert: cert,
+						ca: cert,
 						rejectUnauthorized: strict
 					};
 				}
@@ -101,7 +101,7 @@ function runTest() {
 				request({
 					uri: uri,
 					proxy: proxy,
-					cert: cert,
+					ca: cert,
 					rejectUnauthorized: strict
 				}, function (error) {
 					if (error) {
@@ -131,7 +131,7 @@ function runTest() {
 					host: parsedHost.hostname,
 					port: parsedHost.port,
 					agent: tunnelingAgent,
-					cert: cert,
+					ca: cert,
 					rejectUnauthorized: strict
 				}, function () {
 					console.log('  The tunnel module finished successfully');
