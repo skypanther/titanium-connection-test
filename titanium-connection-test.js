@@ -9,6 +9,7 @@
 var async = require('async'),
 	url = require('url'),
 	commander = require('commander'),
+	fs = require('fs'),
 
 	https = require('https'),
 	http = require('http'),
@@ -41,13 +42,19 @@ var async = require('async'),
 			expectedResponseCode: 302
 		}
 	],
-	proxy;
+	proxy,
+	cert;
 
 commander
 	.version(require('./package.json').version)
 	.option('-p, --proxy [url]', 'The proxy to use, e.g. "http://myproxy.com:8080"')
+	.option('-c, --cert [path]', 'The certificate to use')
 	.parse(process.argv);
 proxy = commander.proxy;
+cert = commander.cert;
+if (cert) {
+	cert = fs.readFileSync(cert);
+}
 
 if (proxy) {
 	console.log('\nRunning tests with proxy ' + proxy);
@@ -64,7 +71,8 @@ function runTest() {
 			// raw HTTP client
 			function (next) {
 				var options,
-					parsedProxy;
+					parsedProxy,
+					parsedUri;
 				if (proxy) {
 					parsedProxy = url.parse(proxy);
 					options = {
@@ -73,10 +81,17 @@ function runTest() {
 						path: uri.uri,
 						headers: {
 							Host: url.parse(uri.uri).hostname
-						}
+						},
+						cert: cert
 					};
 				} else {
-					options = uri.uri;
+					parsedUri = url.parse(uri.uri);
+					options = {
+						host: parsedUri.hostname,
+						port: parsedUri.port,
+						path: parsedUri.path,
+						cert: cert
+					};
 				}
 				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function (response) {
 					console.log('  The raw HTTP module finished for ' + uri.uri + ' with status code ' + response.statusCode +
