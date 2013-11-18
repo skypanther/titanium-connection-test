@@ -17,34 +17,17 @@ var async = require('async'),
 	tunnel = require('tunnel'),
 
 	uris = [
-		{
-			uri: 'https://www.google.com',
-			expectedResponseCode: 200
-		},
-		{
-			uri: 'https://github.com',
-			expectedResponseCode: 200
-		},
-		{
-			uri: 'https://www.appcelerator.com',
-			expectedResponseCode: 200
-		},
-		{
-			uri: 'https://api.appcelerator.net/p/v1/sso-login',
-			expectedResponseCode: 400
-		},
-		{
-			uri: 'https://api.appcelerator.net/p/v1/sso-logout',
-			expectedResponseCode: 400
-		},
-		{
-			uri: 'https://my.appcelerator.com/',
-			expectedResponseCode: 302
-		}
+		'https://www.google.com',
+		'https://github.com',
+		'https://www.appcelerator.com',
+		'https://api.appcelerator.net/p/v1/sso-login',
+		'https://api.appcelerator.net/p/v1/sso-logout',
+		'https://my.appcelerator.com/'
 	],
 	proxy,
 	cert,
 	strict;
+require('colors');
 
 commander
 	.version(require('./package.json').version)
@@ -59,15 +42,17 @@ if (cert) {
 	cert = fs.readFileSync(cert);
 }
 
-console.log(proxy ? '\nUsing proxy "' + proxy + '"' : '\nNot using a proxy');
-console.log(cert ? 'Using certificate "' + cert + '"' : 'Not using a certificate');
+//Get list of URLs from Michael
+
+console.log(proxy ? '\nUsing proxy ' + proxy : '\nNot using a proxy');
+console.log(cert ? 'Using certificate ' + cert : 'Not using a certificate');
 console.log(strict ? 'Failing on SSL errors' : 'Ignoring SSL errors');
 console.log('\nRunning Tests');
 
 function runTest() {
 	var uri = uris.shift();
 	if (uri) {
-		console.log('\nTesting endpoint ' + uri.uri);
+		console.log('\nTesting endpoint ' + uri);
 		async.parallel([
 
 			// raw HTTP client
@@ -80,15 +65,15 @@ function runTest() {
 					options = {
 						host: parsedProxy.hostname,
 						port: parsedProxy.port,
-						path: uri.uri,
+						path: uri,
 						headers: {
-							Host: url.parse(uri.uri).hostname
+							Host: url.parse(uri).hostname
 						},
 						cert: cert,
 						rejectUnauthorized: strict
 					};
 				} else {
-					parsedUri = url.parse(uri.uri);
+					parsedUri = url.parse(uri);
 					options = {
 						host: parsedUri.hostname,
 						port: parsedUri.port,
@@ -97,12 +82,11 @@ function runTest() {
 						rejectUnauthorized: strict
 					};
 				}
-				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function (response) {
-					console.log('  The raw HTTP module finished for ' + uri.uri + ' with status code ' + response.statusCode +
-						' (expected ' + uri.expectedResponseCode + ')');
+				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function () {
+					console.log('  The raw HTTP module finished successfully');
 					next();
 				}).on('error', function (error) {
-					console.log('  The raw HTTP module failed for ' + uri.uri + '\n\t' + error);
+					console.error(('  The raw HTTP module failed for ' + uri + '\n\t' + error).red);
 					next();
 				});
 			},
@@ -110,16 +94,15 @@ function runTest() {
 			// request module
 			function (next) {
 				request({
-					uri: uri.uri,
+					uri: uri,
 					proxy: proxy,
 					cert: cert,
 					rejectUnauthorized: strict
-				}, function (error, response) {
+				}, function (error) {
 					if (error) {
-						console.log('  The request module failed for ' + uri.uri + '\n\t' + error);
+						console.error(('  The request module failed for ' + uri + '\n\t' + error).red);
 					} else {
-						console.log('  The request module finished for ' + uri.uri + ' with status code ' + response.statusCode +
-							' (expected ' + uri.expectedResponseCode + ')');
+						console.log('  The request module finished successfully');
 					}
 					next();
 				});
@@ -128,14 +111,14 @@ function runTest() {
 			// tunnel module
 			function (next) {
 				var parsedProxy,
-					parsedHost = url.parse(uri.uri),
+					parsedHost = url.parse(uri),
 					tunnelingAgent;
 				if (proxy) {
 					parsedProxy = url.parse(proxy);
 					tunnelingAgent = tunnel[parsedProxy.protocol == 'http:' ? 'httpsOverHttp' : 'httpsOverHttps']({
 						proxy: {
-							host: parsedProxy.hostname, // Defaults to 'localhost'
-							port: parsedProxy.port, // Defaults to 80
+							host: parsedProxy.hostname,
+							port: parsedProxy.port,
 						}
 					});
 				}
@@ -145,12 +128,11 @@ function runTest() {
 					agent: tunnelingAgent,
 					cert: cert,
 					rejectUnauthorized: strict
-				}, function (response) {
-					console.log('  The tunnel module finished for ' + uri.uri + ' with status code ' + response.statusCode +
-						' (expected ' + uri.expectedResponseCode + ')');
+				}, function () {
+					console.log('  The tunnel module finished successfully');
 					next();
 				}).on('error', function (error) {
-					console.log('  The tunnel module failed for ' + uri.uri + '\n\t' + error);
+					console.error(('  The tunnel module failed for ' + uri + '\n\t' + error).red);
 					next();
 				});
 			}
