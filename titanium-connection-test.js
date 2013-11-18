@@ -20,9 +20,14 @@ var async = require('async'),
 		'https://www.google.com',
 		'https://github.com',
 		'https://www.appcelerator.com',
-		'https://api.appcelerator.net/p/v1/sso-login',
-		'https://api.appcelerator.net/p/v1/sso-logout',
-		'https://my.appcelerator.com/'
+		'https://www.aptana.com',
+		'https://api.appcelerator.net',
+		'https://api.cloud.appcelerator.com',
+		'https://developer.appcelerator.com',
+		'https://my.appcelerator.com',
+		'https://preview.appcelerator.com',
+		'https://studio.appcelerator.com',
+		'https://www.appcelerator.com'
 	],
 	proxy,
 	cert,
@@ -86,7 +91,7 @@ function runTest() {
 					console.log('  The raw HTTP module finished successfully');
 					next();
 				}).on('error', function (error) {
-					console.error(('  The raw HTTP module failed for ' + uri + '\n\t' + error).red);
+					console.error(('  The raw HTTP module failed. ' + error).red);
 					next();
 				});
 			},
@@ -100,7 +105,7 @@ function runTest() {
 					rejectUnauthorized: strict
 				}, function (error) {
 					if (error) {
-						console.error(('  The request module failed for ' + uri + '\n\t' + error).red);
+						console.error(('  The request module failed. ' + error).red);
 					} else {
 						console.log('  The request module finished successfully');
 					}
@@ -132,7 +137,7 @@ function runTest() {
 					console.log('  The tunnel module finished successfully');
 					next();
 				}).on('error', function (error) {
-					console.error(('  The tunnel module failed for ' + uri + '\n\t' + error).red);
+					console.error(('  The tunnel module failed. ' + error).red);
 					next();
 				});
 			}
