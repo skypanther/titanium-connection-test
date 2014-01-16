@@ -19,15 +19,15 @@ var async = require('async'),
 	uris = [
 		'https://www.google.com',
 		'https://github.com',
+		'https://dashboard.appcelerator.com',
+		'https://appctest-2.appcelerator.com',
 		'https://www.appcelerator.com',
-		'https://www.aptana.com',
 		'https://api.appcelerator.net',
 		'https://api.cloud.appcelerator.com',
 		'https://developer.appcelerator.com',
 		'https://my.appcelerator.com',
 		'https://preview.appcelerator.com',
-		'https://studio.appcelerator.com',
-		'https://www.appcelerator.com'
+		'https://studio.appcelerator.com'
 	],
 	proxy,
 	cert,
