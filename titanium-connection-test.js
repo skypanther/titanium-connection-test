@@ -15,6 +15,7 @@ var async = require('async'),
 	http = require('http'),
 	request = require('request'),
 	tunnel = require('tunnel'),
+	exec = require('child_process').exec,
 
 	uris = [
 		'https://www.google.com',
@@ -54,7 +55,7 @@ console.log(cert ? 'Using certificate ' + cert : 'Not using a certificate');
 console.log(strict ? 'Failing on SSL errors' : 'Ignoring SSL errors');
 console.log('\nRunning Tests');
 
-function runTest() {
+function runEndpointTest() {
 	var uri = uris.shift();
 	if (uri) {
 		console.log('\nTesting endpoint ' + uri);
@@ -142,10 +143,43 @@ function runTest() {
 				});
 			}
 
-		], runTest);
+		], runEndpointTest);
 	} else {
-		console.log('\nAll tests finished\n');
-		process.exit();
+		console.log('\nFinished testing endpoints');
+		runLoginTest();
 	}
 }
-runTest();
+
+function runLoginTest() {
+	console.log('\nTesting logging in against dashboard.appcelerator.com');
+	var parsedProxy;
+	if (proxy) {
+		parsedProxy = url.parse(proxy);
+	}
+
+	var command = "java ";
+	var hiddenText;
+	if (parsedProxy) {
+		var scheme = (parsedProxy.protocol == 'http:') ? "http" : "https";
+		command += "-D" + scheme + ".proxyHost=" + parsedProxy.hostname + " ";
+		command += "-D" + scheme + ".proxyPort=" + parsedProxy.port + " ";
+		var auth = parsedProxy.auth;
+		if (auth) {
+			var array = auth.split(":");
+			var username = array[0];
+			var password = array[1];
+			command += "-D" + scheme + ".proxyUser=" + username + " ";
+			command += "-D" + scheme + ".proxyPassword=" + password + " ";
+			hiddenText = password;
+		}
+	}
+	command += "-jar lib/dashboard-login-1.0.0.jar";
+	console.log('\nRunning command: ' + (hiddenText ? command.replace(hiddenText, "********") : command) +'\n');
+	exec(command, function (error, stdout, stderr) {
+		console.log(stdout);
+		process.exit();
+	});
+}
+
+runEndpointTest();
+
