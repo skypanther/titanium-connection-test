@@ -206,8 +206,8 @@ function runcURLTest() {
 	});
 }
 function runLoginTest() {
-	var javaVersion;
-	exec("java -version", function (error, stdout, stderr) {
+	var javaVersion = "Unknown";
+	exec("java -version 1>&2", function (error, stdout, stderr) {
 		javaVersion = stderr;
 	});
 
