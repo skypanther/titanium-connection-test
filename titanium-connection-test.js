@@ -16,6 +16,7 @@ var async = require('async'),
 	request = require('request'),
 	tunnel = require('tunnel'),
 	exec = require('child_process').exec,
+	os = require('os'),
 
 	uris = [
 		'https://www.google.com',
@@ -53,7 +54,47 @@ if (cert) {
 console.log(proxy ? '\nUsing proxy ' + proxy : '\nNot using a proxy');
 console.log(cert ? 'Using certificate ' + cert : 'Not using a certificate');
 console.log(strict ? 'Failing on SSL errors' : 'Ignoring SSL errors');
-console.log('\nRunning Tests');
+
+/**
+ * Looks for proxy settings in some common places like ENV vars, Mac's networksetup
+ */
+function gatherProxySettings() {
+	console.log('\nSniffing proxy settings in environment...');
+	var found = false;
+
+	if (process.env['http_proxy'] != undefined) {
+		console.log("http_proxy=" + process.env['http_proxy']);
+		found = true;
+	}
+	if (process.env['https_proxy'] != undefined) {
+		console.log("https_proxy=" + process.env['https_proxy']);
+		found = true;
+	}
+	if (os.platform == 'darwin') {
+		networkservices = ['Ethernet', 'Wi-Fi'];
+		for(var i = 1; i < networkservices.length; i++)
+		{
+		   	exec("networksetup -getwebproxy \"" + networkservices[i] + "\"", function (error2, stdout2, stderr2) {
+		   		if (stdout2.indexOf("Enabled: No") == -1) {
+					console.log("HTTP Proxy settings found for " + networkservices[i]);
+					console.log(stdout2);
+					found = true;
+				}
+			});
+			exec("networksetup -getsecurewebproxy \"" + networkservices[i] + "\"", function (error2, stdout2, stderr2) {
+				if (stdout2.indexOf("Enabled: No") == -1) {
+					console.log("HTTPS Proxy settings found for " + networkservices[i]);
+					console.log(stdout2);
+					found = true;
+				}
+			});
+		}
+	}
+
+	if (!found) {
+		console.log('Found no proxy settings in common locations.'.cyan)
+	}
+}
 
 function runEndpointTest() {
 	var uri = uris.shift();
@@ -89,7 +130,7 @@ function runEndpointTest() {
 					};
 				}
 				(proxy && parsedProxy.protocol == 'http:' ? http : https).get(options, function () {
-					console.log('  The raw HTTP module finished successfully');
+					console.log('  The raw HTTP module finished successfully'.green);
 					next();
 				}).on('error', function (error) {
 					console.error(('  The raw HTTP module failed. ' + error).red);
@@ -108,7 +149,7 @@ function runEndpointTest() {
 					if (error) {
 						console.error(('  The request module failed. ' + error).red);
 					} else {
-						console.log('  The request module finished successfully');
+						console.log('  The request module finished successfully'.green);
 					}
 					next();
 				});
@@ -135,7 +176,7 @@ function runEndpointTest() {
 					ca: cert,
 					rejectUnauthorized: strict
 				}, function () {
-					console.log('  The tunnel module finished successfully');
+					console.log('  The tunnel module finished successfully'.green);
 					next();
 				}).on('error', function (error) {
 					console.error(('  The tunnel module failed. ' + error).red);
@@ -147,11 +188,29 @@ function runEndpointTest() {
 	} else {
 		console.log('\nFinished testing endpoints');
 		runLoginTest();
+		runcURLTest();
 	}
 }
 
+function runcURLTest() {
+	exec("curl -d \"un=unit_tests@aptana.com&pw=unittest&mid=studio\" https://api.appcelerator.net/p/v1/sso-login", function (error, stdout, stderr) {
+		console.log('\nTesting logging in against api.appcelerator.net using cURL')
+		result = JSON.parse(stdout)
+		console.log(result.success ? "Successful".green : "Failed".red);
+	});
+
+	exec("curl -d \"username=unit_tests@aptana.com&password=unittest&from=studio\" https://dashboard.appcelerator.com/api/v1/auth/login", function (error, stdout, stderr) {
+		console.log('\nTesting logging in against dashboard.appcelerator.com using cURL')
+		result = JSON.parse(stdout)
+		console.log(result.success ? "Successful".green : "Failed".red);
+	});
+}
 function runLoginTest() {
-	console.log('\nTesting logging in against dashboard.appcelerator.com');
+	var javaVersion;
+	exec("java -version", function (error, stdout, stderr) {
+		javaVersion = stderr;
+	});
+
 	var parsedProxy;
 	if (proxy) {
 		parsedProxy = url.parse(proxy);
@@ -174,12 +233,21 @@ function runLoginTest() {
 		}
 	}
 	command += "-jar lib/dashboard-login-1.0.0.jar";
-	console.log('\nRunning command: ' + (hiddenText ? command.replace(hiddenText, "********") : command) +'\n');
 	exec(command, function (error, stdout, stderr) {
-		console.log(stdout);
+		console.log('\nTesting logging in against dashboard.appcelerator.com using Java');
+		console.log(javaVersion.cyan);
+		console.log('Running command: ' + (hiddenText ? command.replace(hiddenText, "********") : command));
+		console.error(stderr.red);
+		// Spit out the first line of stdout which contains http response code, then parse the rest as JSON and get success property
+		firstLine = stdout.split('\n')[0];
+		console.log(firstLine);
+		result = JSON.parse(stdout.substr(stdout.indexOf("\n") + 1));
+		console.log(result.success ? "Successful".green : "Failed".red);
 		process.exit();
 	});
 }
 
+gatherProxySettings();
+console.log('\nRunning Endpoint Tests');
 runEndpointTest();
 
