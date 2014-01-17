@@ -17,6 +17,7 @@ var async = require('async'),
 	tunnel = require('tunnel'),
 	exec = require('child_process').exec,
 	os = require('os'),
+	path = require('path'),
 
 	uris = [
 		'https://www.google.com',
@@ -232,7 +233,8 @@ function runLoginTest() {
 			hiddenText = password;
 		}
 	}
-	command += "-jar lib/dashboard-login-1.0.0.jar";
+	jarPath = path.resolve(__dirname, 'lib/dashboard-login-1.0.0.jar');
+	command += "-jar " + jarPath;
 	exec(command, function (error, stdout, stderr) {
 		console.log('\nTesting logging in against dashboard.appcelerator.com using Java');
 		console.log(javaVersion.cyan);
