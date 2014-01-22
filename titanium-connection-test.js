@@ -194,16 +194,32 @@ function runEndpointTest() {
 }
 
 function runcURLTest() {
-	exec("curl -d \"un=unit_tests@aptana.com&pw=unittest&mid=studio\" https://api.appcelerator.net/p/v1/sso-login", function (error, stdout, stderr) {
+	var proxyString = '';
+	if (proxy) {
+		proxyString = " -x " + proxy;
+	}
+	exec("curl" + proxyString + " -d \"un=unit_tests@aptana.com&pw=unittest&mid=studio\" https://api.appcelerator.net/p/v1/sso-login", function (error, stdout, stderr) {
 		console.log('\nTesting logging in against api.appcelerator.net using cURL')
-		result = JSON.parse(stdout)
-		console.log(result.success ? "Successful".green : "Failed".red);
+		try{
+			result = JSON.parse(stdout);
+			console.log(result.success ? "Successful".green : "Failed".red);
+		}
+		catch(err)
+		{
+			console.log(("Failed: " + err.message).red);
+		}
 	});
 
-	exec("curl -d \"username=unit_tests@aptana.com&password=unittest&from=studio\" https://dashboard.appcelerator.com/api/v1/auth/login", function (error, stdout, stderr) {
+	exec("curl" + proxyString + " -d \"username=unit_tests@aptana.com&password=unittest&from=studio\" https://dashboard.appcelerator.com/api/v1/auth/login", function (error, stdout, stderr) {
 		console.log('\nTesting logging in against dashboard.appcelerator.com using cURL')
-		result = JSON.parse(stdout)
-		console.log(result.success ? "Successful".green : "Failed".red);
+		try{
+			result = JSON.parse(stdout);
+			console.log(result.success ? "Successful".green : "Failed".red);
+		}
+		catch(err)
+		{
+			console.log(("Failed: " + err.message).red);
+		}
 	});
 }
 function runLoginTest() {
@@ -245,7 +261,6 @@ function runLoginTest() {
 		console.log(firstLine);
 		result = JSON.parse(stdout.substr(stdout.indexOf("\n") + 1));
 		console.log(result.success ? "Successful".green : "Failed".red);
-		process.exit();
 	});
 }
 
