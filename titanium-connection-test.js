@@ -262,6 +262,7 @@ function runLoginTest() {
 		console.log(firstLine);
 		result = JSON.parse(stdout.substr(stdout.indexOf("\n") + 1));
 		console.log(result.success ? "Successful".green : "Failed".red);
+		process.exit(result.success ? 0 : 1);
 	});
 }
 
